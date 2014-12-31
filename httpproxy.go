@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"strings"
 )
 
 var (
@@ -20,6 +21,7 @@ var (
 			return errHasRedirect
 		},
 	}
+	proxyIPkeys = []string{"X-Forwarded-For", "Proxy-Client-IP", "WL-Proxy-Client-IP", "HTTP-Client-IP"}
 )
 
 func connectProxy(w http.ResponseWriter, r *http.Request) {
@@ -45,6 +47,15 @@ func connectProxy(w http.ResponseWriter, r *http.Request) {
 	io.Copy(dstConn, conn)
 }
 
+func clientIP(r *http.Request) string {
+	for _, key := range proxyIPkeys {
+		if ip, ok := r.Header[key]; ok {
+			return ip[0]
+		}
+	}
+	return r.RemoteAddr[:strings.LastIndex(r.RemoteAddr, ":")]
+}
+
 func httpProxy(w http.ResponseWriter, r *http.Request) {
 	r1, err := http.NewRequest(r.Method, r.URL.String(), r.Body)
 	if err != nil && err != errHasRedirect {
@@ -57,6 +68,8 @@ func httpProxy(w http.ResponseWriter, r *http.Request) {
 		}
 		r1.Header.Set(k, v[0])
 	}
+	r1.Header.Set("X-Forwarded-For", clientIP(r))
+	log.Println(clientIP(r))
 
 	resp, err := c.Do(r1)
 	if err != nil && err.(*url.Error).Err != errHasRedirect {
