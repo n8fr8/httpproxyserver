@@ -5,24 +5,45 @@ import (
     "io"
     "io/ioutil"
     "log"
-    "net"
     "net/http"
     "net/url"
     "strings"
+    "golang.org/x/net/proxy"
+    "fmt"
+    "os"
 )
 
-var (
-    tr  = &http.Transport{
+var ( 
+
+    tr  = &http.Transport {
         DisableCompression: true,
     }
+
     errHasRedirect = errors.New("has redirect")
-    c              = &http.Client{Transport: tr,
+
+    c              = &http.Client{ Transport: tr,
         CheckRedirect: func(*http.Request, []*http.Request) error {
             return errHasRedirect
         },
     }
+
     proxyIPkeys = []string{"X-Forwarded-For", "Proxy-Client-IP", "WL-Proxy-Client-IP", "HTTP-Client-IP"}
+
 )
+
+func main() {
+
+    tbProxyURL,err := url.Parse("socks5://127.0.0.1:9050")
+
+    tbDialer, err := proxy.FromURL(tbProxyURL, proxy.Direct)
+    if err != nil {
+        fatalf("Failed to obtain proxy dialer: %v\n", err)
+    }
+
+    tr.Dial = tbDialer.Dial 
+
+    log.Fatal(http.ListenAndServe(":8888", http.HandlerFunc(proxyHandler)))
+}
 
 func connectProxy(w http.ResponseWriter, r *http.Request) {
     conn, _, err := w.(http.Hijacker).Hijack()
@@ -37,7 +58,11 @@ func connectProxy(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    dstConn, err := net.Dial("tcp", r.RequestURI)
+    tbProxyURL,err := url.Parse("socks5://127.0.0.1:9050")
+
+    dialerProxy, err := proxy.FromURL(tbProxyURL,proxy.Direct)
+
+    dstConn, err := dialerProxy.Dial("tcp", r.RequestURI)
     if err != nil {
         return
     }
@@ -57,6 +82,7 @@ func clientIP(r *http.Request) string {
 }
 
 func httpProxy(w http.ResponseWriter, r *http.Request) {
+
     r1, err := http.NewRequest(r.Method, r.URL.String(), r.Body)
     if err != nil && err != errHasRedirect {
         http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -108,6 +134,8 @@ func proxyHandler(w http.ResponseWriter, r *http.Request) {
     }
 }
 
-func main() {
-    log.Fatal(http.ListenAndServe(":8888", http.HandlerFunc(proxyHandler)))
+
+func fatalf(fmtStr string, args interface{}) {
+	fmt.Fprintf(os.Stderr, fmtStr, args)
+	os.Exit(-1)
 }
