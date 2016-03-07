@@ -122,9 +122,9 @@ func httpProxy(w http.ResponseWriter, r *http.Request) {
 }
 
 func proxyHandler(w http.ResponseWriter, r *http.Request) {
-    log.Println(r.Method, r.RequestURI)
+    //log.Println(r.Method, r.RequestURI)
     defer func() {
-        log.Printf("done %s", r.RequestURI)
+        //log.Printf("done %s", r.RequestURI)
     }()
 
     if r.Method == "CONNECT" {
