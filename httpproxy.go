@@ -1,4 +1,4 @@
-package main
+package helloproxy
 
 import (
     "errors"
@@ -13,25 +13,23 @@ import (
     "os"
 )
 
-var ( 
-
+var (
     tr  = &http.Transport {
         DisableCompression: true,
     }
 
     errHasRedirect = errors.New("has redirect")
 
-    c              = &http.Client{ Transport: tr,
+    c = &http.Client{ Transport: tr,
         CheckRedirect: func(*http.Request, []*http.Request) error {
             return errHasRedirect
         },
     }
 
     proxyIPkeys = []string{"X-Forwarded-For", "Proxy-Client-IP", "WL-Proxy-Client-IP", "HTTP-Client-IP"}
-
 )
 
-func main() {
+func StartProxy () {
 
     tbProxyURL,err := url.Parse("socks5://127.0.0.1:9050")
 
