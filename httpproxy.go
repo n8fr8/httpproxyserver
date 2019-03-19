@@ -29,16 +29,18 @@ var (
 
 func StartProxy (localproxyport string, upproxyurl string) {
 
-    //tbProxyURL,err := url.Parse("socks5://127.0.0.1:9050")
+    log.Print("localproxyport: ", localproxyport)
+    log.Print("upproxyurl: ", upproxyurl)
+
     tbProxyURL,err := url.Parse(upproxyurl)
 
     tbDialer, err := proxy.FromURL(tbProxyURL, proxy.Direct)
     if err != nil {
+	log.Print("error starting proxy: ", err);
     }
 
     tr.Dial = tbDialer.Dial 
 
-    //log.Fatal(http.ListenAndServe(":8888", http.HandlerFunc(proxyHandler)))
     log.Fatal(http.ListenAndServe(localproxyport, http.HandlerFunc(proxyHandler)))
 }
 
