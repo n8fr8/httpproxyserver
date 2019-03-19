@@ -9,8 +9,6 @@ import (
     "net/url"
     "strings"
     "golang.org/x/net/proxy"
-    "fmt"
-    "os"
 )
 
 var (
@@ -29,18 +27,19 @@ var (
     proxyIPkeys = []string{"X-Forwarded-For", "Proxy-Client-IP", "WL-Proxy-Client-IP", "HTTP-Client-IP"}
 )
 
-func StartProxy () {
+func StartProxy (localproxyport string, upproxyurl string) {
 
-    tbProxyURL,err := url.Parse("socks5://127.0.0.1:9050")
+    //tbProxyURL,err := url.Parse("socks5://127.0.0.1:9050")
+    tbProxyURL,err := url.Parse(upproxyurl)
 
     tbDialer, err := proxy.FromURL(tbProxyURL, proxy.Direct)
     if err != nil {
-        fatalf("Failed to obtain proxy dialer: %v\n", err)
     }
 
     tr.Dial = tbDialer.Dial 
 
-    log.Fatal(http.ListenAndServe(":8888", http.HandlerFunc(proxyHandler)))
+    //log.Fatal(http.ListenAndServe(":8888", http.HandlerFunc(proxyHandler)))
+    log.Fatal(http.ListenAndServe(localproxyport, http.HandlerFunc(proxyHandler)))
 }
 
 func connectProxy(w http.ResponseWriter, r *http.Request) {
@@ -133,7 +132,3 @@ func proxyHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 
-func fatalf(fmtStr string, args interface{}) {
-	fmt.Fprintf(os.Stderr, fmtStr, args)
-	os.Exit(-1)
-}
